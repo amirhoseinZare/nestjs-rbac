@@ -1,11 +1,16 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { HttpExceptionFilter } from './filters/http-exception.filter';
 import { envs } from './config/env';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 
 async function bootstrap() {
   console.log(envs.port)
   const app = await NestFactory.create(AppModule);
+
+  if (envs.isProd()) {
+    app.useGlobalFilters(new HttpExceptionFilter());
+  }
 
   const config = new DocumentBuilder()
     .setTitle('RBAC')

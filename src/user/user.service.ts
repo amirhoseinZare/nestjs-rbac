@@ -82,8 +82,17 @@ export class UserService {
 
   async getRoles(userId: number) {
     const user = await this.findOneByIdOrException(userId)
-    return this.userRoleRepository.find({
+    const roles = await this.userRoleRepository.find({
       where: { user: { id: user.id } }, relations: ['role', 'role.permissions', 'role.permissions.permission']
+    })
+
+    return roles.map(({ role: { name, id, permissions } }) => {
+      const permissionList = permissions.map(({ permission: { name, id } }) => ({ name, id }))
+
+      return {
+        role: { id, name },
+        permissions: permissionList
+      }
     })
   }
 }

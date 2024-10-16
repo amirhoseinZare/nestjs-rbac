@@ -4,6 +4,7 @@ import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { AddRolePermissionDto } from './dto/add-role-permission.dto';
+import { AddRolePermissionsDto } from './dto/add-role-permissions-bulk.dto';
 
 @ApiTags('Role')
 @Controller('role')
@@ -44,5 +45,12 @@ export class RoleController {
   @Get('permissions/:roleId')
   getPermissions(@Param('roleId') roleId: number) {
     return this.roleService.getPermissions(roleId)
+  }
+
+  @Put('add-permissions-bulk')
+  async addPermissions(@Body() addRolePermissionsDto: AddRolePermissionsDto) {
+    const { roleId, permissionIds } = addRolePermissionsDto;
+    await this.roleService.addPermissionsBulk(roleId, permissionIds);
+    return { message: 'Permissions added successfully' };
   }
 }

@@ -91,4 +91,25 @@ export class RoleService {
     return this.rolePermissionRepository.find({ where: { role: { id: role.id } }, relations: ['permission'] })
   }
 
+  async addPermissionsBulk(roleId: number, permissionIds: number[]): Promise<void> {
+    const role = await this.findOneByIdOrException(roleId);
+
+    for (const permissionId of permissionIds) {
+      const { rolePermission } = await this.findRolePermissionOrException(roleId, permissionId);
+
+      if (rolePermission) {
+        console.warn(`RolePermission for roleId ${roleId} and permissionId ${permissionId} already exists`);
+        continue;
+      }
+
+      const permission = await this.permissionService.findOne(permissionId);
+      const newRolePermission = this.rolePermissionRepository.create({
+        role,
+        permission,
+      });
+
+      await this.rolePermissionRepository.save(newRolePermission);
+    }
+  }
+
 }
