@@ -1,16 +1,14 @@
-import { CreateDateColumn, DeleteDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, DeleteDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { UserRole } from "./user-role.entity";
 
 @Entity()
 export class User {
     @PrimaryGeneratedColumn()
     id: number;
 
-    @CreateDateColumn()
-    createdAt: Date;
+    @Column({ type: 'text', unique: true })
+    name: string;
 
-    @UpdateDateColumn()
-    updatedAt: Date;
-
-    @DeleteDateColumn()
-    deletedAt: Date;
+    @OneToMany(() => UserRole, userRole => userRole.user)
+    roles: UserRole[];
 }

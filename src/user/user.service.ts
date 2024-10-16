@@ -1,33 +1,89 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Repository } from 'typeorm';
-import { User } from './entities/user.entity';
 import { InjectRepository } from '@nestjs/typeorm';
+import { User } from './entities/user.entity';
+import { UserRole } from './entities/user-role.entity';
+import { RoleService } from 'src/role/role.service';
+import { Role } from 'src/role/entities/role.entity';
 
 @Injectable()
 export class UserService {
-  constructor(@InjectRepository(User) private readonly userRepository: Repository<User>) {
+  constructor(
+    @InjectRepository(User) private readonly userRepository: Repository<User>,
+    @InjectRepository(UserRole) private readonly userRoleRepository: Repository<UserRole>,
+    private readonly roleService: RoleService
+  ) { }
 
+  private async findOneByIdOrException(id: number): Promise<User> {
+    const user = await this.userRepository.findOne({ where: { id } });
+    if (!user) throw new BadRequestException(`User with id #${id} not found`);
+    return user;
   }
 
-  create(createUserDto: CreateUserDto) {
-    return this.userRepository.create(createUserDto)
+  private async findUserRoleOrException(userId: number, roleId: number): Promise<{ user: User, role: Role, userRole: null | UserRole }> {
+    const user = await this.findOne(userId)
+    const role = await this.roleService.findOne(roleId)
+
+    const userRole = await this.userRoleRepository.findOne({
+      where: {
+        user: { id: user.id },
+        role: { id: role.id }
+      }
+    })
+
+    return {
+      user,
+      role,
+      userRole
+    }
   }
 
-  findAll() {
-    return this.userRepository.find()
+  async create(createUserDto: CreateUserDto): Promise<User> {
+    const { name } = createUserDto;
+    const exists = (await this.userRepository.count({ where: { name } })) > 0;
+    if (exists) throw new BadRequestException('User with this name already exists');
+
+    const newUser = this.userRepository.create(createUserDto);
+    return this.userRepository.save(newUser);
   }
 
-  findOne(id: number) {
-    return this.userRepository.findOneByOrFail({ id });
+  async findAll(): Promise<User[]> {
+    return this.userRepository.find();
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return this.userRepository.update({ id }, updateUserDto);
+  async findOne(id: number): Promise<User> {
+    return this.findOneByIdOrException(id);
   }
 
-  remove(id: number) {
-    return this.userRepository.delete({ id });
+  async update(id: number, updateUserDto: UpdateUserDto): Promise<User> {
+    const user = await this.findOneByIdOrException(id);
+    Object.assign(user, updateUserDto);
+    return this.userRepository.save(user);
+  }
+
+  async remove(id: number): Promise<User> {
+    const user = await this.findOneByIdOrException(id);
+    return this.userRepository.remove(user);
+  }
+
+  async addRole(userId: number, roleId: number) {
+    const { user, role, userRole } = await this.findUserRoleOrException(userId, roleId)
+    if (userRole) throw new BadRequestException('userRole already exists')
+
+    const newUserRole = this.userRoleRepository.create({
+      role,
+      user
+    })
+
+    return this.userRoleRepository.save(newUserRole)
+  }
+
+  async getRoles(userId: number) {
+    const user = await this.findOneByIdOrException(userId)
+    return this.userRoleRepository.find({
+      where: { user: { id: user.id } }, relations: ['role', 'role.permissions', 'role.permissions.permission']
+    })
   }
 }

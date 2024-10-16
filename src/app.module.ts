@@ -3,12 +3,12 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
 import { RoleModule } from './role/role.module';
-import { PremissionModule } from './premission/premission.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import dataSource, { dataSourceOptions } from 'db/data-source';
+import { dataSourceOptions } from 'db/data-source';
+import { PermissionModule } from './permission/permission.module';
 
 @Module({
-  imports: [UserModule, RoleModule, PremissionModule, TypeOrmModule.forRoot(dataSourceOptions)],
+  imports: [UserModule, RoleModule, PermissionModule, TypeOrmModule.forRoot(dataSourceOptions)],
   controllers: [AppController],
   providers: [AppService],
 })
